@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../services/auth';
 
 @Component({
   selector: 'app-login',
@@ -10,7 +10,8 @@ import { AuthService } from '../services/auth.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div
-      class="min-h-screen w-fit text-black flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+      class="min-h-screen w-fit text-black
+  flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
     >
       <div class="w-full space-y-8">
         <div>
@@ -109,9 +110,9 @@ export class LoginComponent {
       this.error.set('');
 
       this.authService.login(this.loginForm.value).subscribe({
-        next: () => {
-          // eslint-friendly
+        next: (user) => {
           this.loading.set(false);
+          this.authService.setCurrentUser(user); // important pour que header/guards voient la session
           this.router.navigate(['/todos']);
         },
         error: (err) => {
@@ -131,7 +132,7 @@ export class LoginComponent {
     const field = this.loginForm.get(fieldName);
     if (field?.errors) {
       if (field.errors['required']) return 'Ce champ est requis';
-      if (field.errors['email']) return `Format d'email invalide`;
+      if (field.errors['email']) return "Format d'email invalide";
       if (field.errors['minlength'])
         return `Minimum ${field.errors['minlength'].requiredLength} caractères`;
     }
