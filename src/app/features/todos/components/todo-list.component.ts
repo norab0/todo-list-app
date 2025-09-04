@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { TodoService } from '../services/todo.service';
 import { PriorityPipe } from '../../../shared/pipes/priority.pipe';
 import { HighlightDirective } from '../../../shared/directives/highlight.directive';
+import { Todo } from '../models/todo.model';
 
 @Component({
   selector: 'app-todo-list',
@@ -49,7 +50,7 @@ import { HighlightDirective } from '../../../shared/directives/highlight.directi
           <span class="text-sm text-gray-500">({{ todoService.pendingTodos().length }})</span>
         </h3>
         <div class="space-y-3">
-          @for (todo of todoService.pendingTodos(); track todo.id) {
+          @for (todo of todoService.pendingTodos(); track trackByTodoId($index, todo)) {
             <div
               class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-gray-400"
               [appHighlight]="todo.priority === 'high' ? 'rgba(239, 68, 68, 0.1)' : 'transparent'"
@@ -87,7 +88,7 @@ import { HighlightDirective } from '../../../shared/directives/highlight.directi
           <span class="text-sm text-gray-500">({{ todoService.inProgressTodos().length }})</span>
         </h3>
         <div class="space-y-3">
-          @for (todo of todoService.inProgressTodos(); track todo.id) {
+          @for (todo of todoService.inProgressTodos(); track trackByTodoId($index, todo)) {
             <div
               class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400"
               [appHighlight]="todo.priority === 'high' ? 'rgba(239, 68, 68, 0.1)' : 'transparent'"
@@ -125,7 +126,7 @@ import { HighlightDirective } from '../../../shared/directives/highlight.directi
           <span class="text-sm text-gray-500">({{ todoService.completedTodos().length }})</span>
         </h3>
         <div class="space-y-3">
-          @for (todo of todoService.completedTodos(); track todo.id) {
+          @for (todo of todoService.completedTodos(); track trackByTodoId($index, todo)) {
             <div
               class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-400"
               [appHighlight]="todo.priority === 'high' ? 'rgba(34, 197, 94, 0.1)' : 'transparent'"
@@ -160,4 +161,9 @@ import { HighlightDirective } from '../../../shared/directives/highlight.directi
 })
 export class TodoListComponent {
   todoService = inject(TodoService);
+
+  // ⚡ Optimisation : TrackBy pour éviter la recréation des éléments
+  trackByTodoId(index: number, todo: Todo): number {
+    return todo.id;
+  }
 }
