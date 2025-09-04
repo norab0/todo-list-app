@@ -1,5 +1,5 @@
 // src/app/features/todos/components/todo-list.component.ts
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TodoService } from '../services/todo.service';
 import { PriorityPipe } from '../../../shared/pipes/priority.pipe';
@@ -9,6 +9,7 @@ import { HighlightDirective } from '../../../shared/directives/highlight.directi
   selector: 'app-todo-list',
   standalone: true,
   imports: [CommonModule, PriorityPipe, HighlightDirective],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Dashboard des statistiques -->
     <div class="mb-8">
