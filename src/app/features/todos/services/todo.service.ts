@@ -1,11 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, effect, signal } from '@angular/core';
 import { Todo, CreateTodoRequest } from '../models/todo.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TodoService {
-  private todos = signal<Todo[]>([
+  private _todos = signal<Todo[]>([
     {
       id: 1,
       title: 'Apprendre Angular',
@@ -38,6 +38,71 @@ export class TodoService {
     },
   ]);
 
+  // Expose readonly todos signal for consumers
+  public todos = this._todos.asReadonly();
+
+  // Computed signals for derived state
+  public completedTodos = computed(() => this._todos().filter((todo) => todo.status === 'done'));
+
+  public pendingTodos = computed(() => this._todos().filter((todo) => todo.status === 'todo'));
+
+  public inProgressTodos = computed(() =>
+    this._todos().filter((todo) => todo.status === 'in-progress'),
+  );
+
+  public highPriorityTodos = computed(() =>
+    this._todos().filter((todo) => todo.priority === 'high'),
+  );
+
+  public todoStats = computed(() => {
+    const all = this._todos();
+    const completed = this.completedTodos().length;
+    const inProgress = this.inProgressTodos().length;
+    const pending = this.pendingTodos().length;
+    const highPriority = this.highPriorityTodos().length;
+    const total = all.length;
+    return {
+      total,
+      completed,
+      inProgress,
+      pending,
+      highPriority,
+      completionRate: total > 0 ? (completed / total) * 100 : 0,
+    };
+  });
+
+  constructor() {
+    // Hydrate from localStorage if available
+    try {
+      const raw = localStorage.getItem('todos');
+      if (raw) {
+        const parsed: Todo[] = JSON.parse(raw);
+        // Ensure Date fields are converted back to Date instances
+        const hydrated = parsed.map((t) => ({
+          ...t,
+          createdAt: new Date(t.createdAt),
+          updatedAt: new Date(t.updatedAt),
+        }));
+        this._todos.set(hydrated);
+      }
+    } catch {
+      // Ignore malformed storage
+    }
+
+    // Persist and log on any todos change
+    effect(() => {
+      const todos = this._todos();
+      // Log side-effect
+      console.warn(`Todos mis à jour: ${todos.length} todos`);
+      // Persist to storage
+      try {
+        localStorage.setItem('todos', JSON.stringify(todos));
+      } catch {
+        // storage might be unavailable; fail silently
+      }
+    });
+  }
+
   // Simuler un délai réseau
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -48,14 +113,14 @@ export class TodoService {
     console.log('🔄 Service: Récupération de tous les todos...');
     await this.delay(300); // Simuler un appel API
     console.log('✅ Service: Todos récupérés avec succès');
-    return this.todos();
+    return this._todos();
   }
 
   // GET - Récupérer un todo par ID
   async getTodoById(id: number): Promise<Todo | undefined> {
     console.log(`🔄 Service: Récupération du todo ${id}...`);
     await this.delay(200);
-    const todo = this.todos().find((t) => t.id === id);
+    const todo = this._todos().find((t) => t.id === id);
     console.log(`✅ Service: Todo ${id} récupéré:`, todo);
     return todo;
   }
@@ -77,7 +142,7 @@ export class TodoService {
       updatedAt: new Date(),
     };
 
-    this.todos.update((todos) => [...todos, newTodo]);
+    this._todos.update((todos) => [...todos, newTodo]);
     console.log('✅ Service: Todo créé avec succès:', newTodo);
     return newTodo;
   }
@@ -88,7 +153,7 @@ export class TodoService {
     await this.delay(300);
 
     let updatedTodo: Todo | undefined;
-    this.todos.update((todos) =>
+    this._todos.update((todos) =>
       todos.map((todo) => {
         if (todo.id === id) {
           updatedTodo = {
@@ -112,7 +177,7 @@ export class TodoService {
     await this.delay(250);
 
     let deleted = false;
-    this.todos.update((todos) => {
+    this._todos.update((todos) => {
       const initialLength = todos.length;
       const filtered = todos.filter((todo) => todo.id !== id);
       deleted = filtered.length < initialLength;
@@ -125,10 +190,10 @@ export class TodoService {
 
   // Méthodes utilitaires
   getTodosByStatus(status: Todo['status']): Todo[] {
-    return this.todos().filter((todo) => todo.status === status);
+    return this._todos().filter((todo) => todo.status === status);
   }
 
   getTodosByPriority(priority: Todo['priority']): Todo[] {
-    return this.todos().filter((todo) => todo.priority === priority);
+    return this._todos().filter((todo) => todo.priority === priority);
   }
 }
