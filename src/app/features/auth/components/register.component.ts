@@ -11,6 +11,7 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth';
+import { RegisterRequest } from '../models/user.model';
 
 // Validateur personnalisé pour la confirmation de mot de passe
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -166,7 +167,7 @@ export class RegisterComponent {
       this.loading.set(true);
       this.error.set('');
 
-      const userData = this.registerForm.value;
+      const userData = this.registerForm.value as RegisterRequest;
 
       this.authService.register(userData).subscribe({
         next: () => {

@@ -1,5 +1,6 @@
 // src/app/features/admin/components/admin.component.ts
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/services/auth';
@@ -22,19 +23,19 @@ import { Todo } from '../../todos/models/todo.model';
       <div class="mb-8">
         <nav class="flex space-x-4">
           <button
-            (click)="activeTab = 'users'"
-            [class.bg-blue-600]="activeTab === 'users'"
-            [class.text-white]="activeTab === 'users'"
-            [class.text-gray-700]="activeTab !== 'users'"
+            (click)="activeTab.set('users')"
+            [class.bg-blue-600]="activeTab() === 'users'"
+            [class.text-white]="activeTab() === 'users'"
+            [class.text-gray-700]="activeTab() !== 'users'"
             class="px-4 py-2 rounded-md font-medium hover:bg-blue-700 hover:text-white transition-colors"
           >
             Utilisateurs
           </button>
           <button
-            (click)="activeTab = 'tickets'"
-            [class.bg-blue-600]="activeTab === 'tickets'"
-            [class.text-white]="activeTab === 'tickets'"
-            [class.text-gray-700]="activeTab !== 'tickets'"
+            (click)="activeTab.set('tickets')"
+            [class.bg-blue-600]="activeTab() === 'tickets'"
+            [class.text-white]="activeTab() === 'tickets'"
+            [class.text-gray-700]="activeTab() !== 'tickets'"
             class="px-4 py-2 rounded-md font-medium hover:bg-blue-700 hover:text-white transition-colors"
           >
             Tickets
@@ -43,7 +44,7 @@ import { Todo } from '../../todos/models/todo.model';
       </div>
 
       <!-- Contenu des onglets -->
-      @if (activeTab === 'users') {
+      @if (activeTab() === 'users') {
         <div class="bg-white shadow rounded-lg">
           <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-xl font-semibold text-gray-900">Gestion des Utilisateurs</h2>
@@ -126,7 +127,7 @@ import { Todo } from '../../todos/models/todo.model';
         </div>
       }
 
-      @if (activeTab === 'tickets') {
+      @if (activeTab() === 'tickets') {
         <div class="bg-white shadow rounded-lg">
           <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-xl font-semibold text-gray-900">Gestion des Tickets</h2>
@@ -235,28 +236,27 @@ export class AdminComponent implements OnInit {
   private todoService = inject(TodoService);
   private router = inject(Router);
 
-  activeTab: 'users' | 'tickets' = 'users';
+  activeTab = signal<'users' | 'tickets'>('users');
   users = signal<User[]>([]);
   todos = signal<Todo[]>([]);
 
   async ngOnInit() {
     // Vérifier que l'utilisateur est admin
-    const currentUser = this.authService.getCurrentUser();
+    const currentUser = await this.authService.getCurrentUser();
     if (!currentUser || currentUser.role !== 'admin') {
       this.router.navigate(['/todos']);
       return;
     }
 
-    this.loadUsers();
+    // Charger les données
+    await this.loadUsers();
     await this.loadTodos();
   }
 
-  loadUsers() {
+  async loadUsers() {
     try {
-      this.authService.getAllUsers().subscribe({
-        next: (users) => this.users.set(users),
-        error: (error) => console.error('Erreur lors du chargement des utilisateurs:', error),
-      });
+      const users = await firstValueFrom(this.authService.getAllUsers());
+      this.users.set(users);
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
     }
@@ -271,13 +271,11 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  deleteUser(userId: number) {
+  async deleteUser(userId: number) {
     if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
       try {
-        this.authService.deleteUser(userId).subscribe({
-          next: () => this.loadUsers(),
-          error: (error) => console.error('Erreur lors de la suppression:', error),
-        });
+        await firstValueFrom(this.authService.deleteUser(userId));
+        await this.loadUsers();
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
       }
