@@ -1,0 +1,10 @@
+[build]
+  publish = "dist/todo-list-app"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+
